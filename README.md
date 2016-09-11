@@ -4,8 +4,8 @@
 
 ## Goals and considerations
 
-* Make microcontroller projects look and feel as much as possible as any other c/c++ project
-* Use as much as possible of the chip vendor's SDK
+* Make microcontroller projects look and feel as much as possible as any other c/c++ project.
+* Use as much as possible of the chip vendor's SDK without requiring any changes to the SDK code.
 * Make the CMake code as uniform as feasible between platforms, but allow for platform-specific options and features.
 
 # Recommended layout
