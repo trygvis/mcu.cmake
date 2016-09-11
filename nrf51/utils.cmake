@@ -1,4 +1,15 @@
+function(mcu_nrf5_startup_files VAR)
+    if ("${MCU_NRF51_SDK_VERSION}" VERSION_LESS 12)
+        set(startup "${MCU_NRF51_SDK_PATH}/components/toolchain/gcc/gcc_startup_nrf51.s")
+    else ()
+        set(startup "${MCU_NRF51_SDK_PATH}/components/toolchain/gcc/gcc_startup_nrf51.S")
+    endif ()
+
+    set(${VAR} ${startup} PARENT_SCOPE)
+endfunction()
+
 function(mcu_add_executable)
+    message("mcu_add_executable: ARGN=${ARGN}")
     set(options)
     set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE)
     set(multiValueArgs)
@@ -17,95 +28,61 @@ function(mcu_add_executable)
         target_sources(${ARGS_TARGET} PUBLIC "${MCU_NRF51_SDK_PATH}/components/toolchain/gcc/gcc_startup_nrf51.S")
     endif ()
 
-    #    target_compile_options(${ARGS_TARGET} PUBLIC "-mcpu=cortex-m0" "-mthumb" "-mabi=aapcs" "--std=gnu99" "-Wall" "-mfloat-abi=soft")
+    target_compile_options(${ARGS_TARGET} PUBLIC -Wall -Werror -g3 -O3)
+
+    # -Wall -Werror -O3 -g3
+    if (${MCU_CHIP} MATCHES "nrf51.*")
+        target_compile_options(${ARGS_TARGET} PUBLIC
+            "-mcpu=cortex-m0"
+            "-mthumb"
+            "-mabi=aapcs"
+            "-mfloat-abi=soft")
+    elseif (${MCU_CHIP} MATCHES "nrf52.*")
+        target_compile_options(${ARGS_TARGET} PUBLIC
+            "-mcpu=cortex-m4"
+            "-mthumb"
+            "-mabi=aapcs"
+            "-mfloat-abi=hard"
+            "-mfpu=fpv4-sp-d16"
+            "-ffunction-sections"
+            "-fdata-sections"
+            "-fno-strict-aliasing"
+            "-fno-builtin"
+            "--short-enums")
+        # -fshort-wchar
+        target_compile_features(${ARGS_TARGET} PUBLIC c_static_assert)
+        target_link_libraries(${ARGS_TARGET} PRIVATE
+            "-mcpu=cortex-m4"
+            "-mthumb"
+            "-mabi=aapcs"
+            "-mfloat-abi=hard"
+            "-mfpu=fpv4-sp-d16"
+            "-Wl,--gc-sections"
+            # "--specs=nano.specs"
+            )
+        # target_link_libraries(${ARGS_TARGET} PUBLIC c nosys)
+    endif ()
 
     if (ARGS_SDK_CONFIG)
         get_filename_component(SDK_CONFIG ${ARGS_SDK_CONFIG} ABSOLUTE)
         get_filename_component(SDK_CONFIG ${SDK_CONFIG} DIRECTORY)
-        set_target_properties(${ARGS_TARGET} PROPERTIES SDK_CONFIG "${SDK_CONFIG}")
         message("set_target_properties(${ARGS_TARGET} PROPERTIES SDK_CONFIG ${SDK_CONFIG})")
     endif ()
 
-    target_link_libraries(${ARGS_TARGET} PUBLIC "-L${MCU_NRF51_SDK_PATH}/components/toolchain/gcc")
-    target_link_libraries(${ARGS_TARGET} PUBLIC "-T${MCU_NRF51_SDK_PATH}/components/toolchain/gcc/nrf51_xxac.ld")
+    set_target_properties(${ARGS_TARGET} PROPERTIES SDK_CONFIG "${SDK_CONFIG}")
 
     if (ARGS_SOFTDEVICE)
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_SOFTDEVICE "${ARGS_SOFTDEVICE}")
-        _nrf51_create_softdevice(${ARGS_TARGET} ${ARGS_SOFTDEVICE})
-        target_link_libraries(${ARGS_TARGET} PUBLIC ${ARGS_TARGET}-softdevice)
-    else ()
-        target_include_directories(${ARGS_TARGET} PUBLIC ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/nrf_soc_nosd)
     endif ()
 
-    _nrf5_set_from_main_target(${ARGS_TARGET} ${ARGS_TARGET})
+    _nrf5_set_from_main_target(${ARGS_TARGET})
 endfunction()
 
-function(_nrf_softdevice_includes VAR SOFTDEVICE)
-    list(APPEND list ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers)
-
-    if (MCU_NRF51_SDK_VERSION VERSION_GREATER 7)
-        if (${MCU_CHIP} MATCHES "nrf51.*")
-            list(APPEND list ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf51)
-        elseif (${MCU_CHIP} MATCHES "nrf52.*")
-            list(APPEND list ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
-        endif ()
-    endif ()
-
-    set(${VAR} ${list} PARENT_SCOPE)
-endfunction()
-
-function(_nrf51_create_softdevice TARGET SOFTDEVICE)
-    get_target_property(SDK_CONFIG ${TARGET} SDK_CONFIG)
-
-    set(T ${TARGET}-softdevice)
-
-    if (SOFTDEVICE STREQUAL 130)
-        _nrf51_add_library(${TARGET} ${T} SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/softdevice/common)
-
-        target_include_directories(${T} PUBLIC
-            ${MCU_NRF51_SDK_PATH}/components/device
-            ${MCU_NRF51_SDK_PATH}/components/softdevice/common
-            ${SDK_CONFIG})
-
-        _nrf_softdevice_includes(SOFTDEVICE_INCLUDES ${SOFTDEVICE})
-        target_include_directories(${T} PRIVATE ${SOFTDEVICE_INCLUDES})
-
-        # These should be libraries, not just includes added here
-        target_include_directories(${T} PUBLIC
-            ${MCU_NRF51_SDK_PATH}/components/libraries/util
-            ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/clock)
-
-        _nrf5_set_from_main_target(${TARGET} ${T})
-        _nrf5_gen_lib(${TARGET} ble ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} drv_common ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} hal ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} log ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} scheduler ADD_TO ${T})
-    else ()
-        message(FATAL_ERROR "MCU: Unsupported softdevice: ${SOFTDEVICE}")
-        return()
-    endif ()
-
-    target_compile_definitions(${TARGET} PUBLIC S${SOFTDEVICE})
-    target_compile_definitions(${TARGET} PUBLIC SOFTDEVICE_PRESENT)
-endfunction()
-
-function(_nrf5_set_from_main_target MAIN_TARGET T)
-    # message("_nrf5_set_from_main_target: MAIN_TARGET=${MAIN_TARGET} T=${T}")
-
-    if (${MCU_CHIP} MATCHES "nrf51.*")
-        target_compile_definitions(${T} PUBLIC NRF51)
-        if (${MCU_CHIP} MATCHES "nrf51822")
-            target_compile_definitions(${T} PUBLIC NRF51822)
-        else ()
-            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
-        endif ()
-    elseif (${MCU_CHIP} MATCHES "nrf52.*")
-        target_compile_definitions(${T} PUBLIC NRF52)
-    else ()
-        message(FATAL_ERROR "MCU: Unsupported MCU chip: ${MCU_CHIP}")
-    endif ()
+function(_nrf5_set_from_main_target T)
+    message("_nrf5_set_from_main_target, T=${T}")
+    _nrf_chip_values(CHIP_INCLUDES CHIP_DEFINES)
+    target_include_directories(${T} PUBLIC ${CHIP_INCLUDES})
+    target_compile_definitions(${T} PUBLIC ${CHIP_DEFINES})
 
     target_include_directories(${T} PUBLIC
         ${MCU_NRF51_SDK_PATH}/components/device
@@ -114,17 +91,85 @@ function(_nrf5_set_from_main_target MAIN_TARGET T)
         ${MCU_NRF51_SDK_PATH}/components/toolchain/cmsis/include
         )
 
-    get_target_property(SDK_CONFIG ${MAIN_TARGET} SDK_CONFIG)
+    get_target_property(SDK_CONFIG ${T} SDK_CONFIG)
     if (SDK_CONFIG)
         # message("_nrf5_set_from_main_target: SDK_CONFIG=${SDK_CONFIG}")
         target_include_directories(${T} PRIVATE ${SDK_CONFIG})
     endif ()
 
-    get_target_property(MCU_SOFTDEVICE ${MAIN_TARGET} MCU_SOFTDEVICE)
-    if (MCU_SOFTDEVICE)
-        _nrf_softdevice_includes(SOFTDEVICE_INCLUDES ${MCU_SOFTDEVICE})
-        target_include_directories(${T} PRIVATE ${SOFTDEVICE_INCLUDES})
+    get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
+    _nrf_softdevice_includes(${MCU_SOFTDEVICE} SOFTDEVICE_INCLUDES SOFTDEVICE_DEFINES)
+    target_include_directories(${T} PUBLIC ${SOFTDEVICE_INCLUDES})
+    target_compile_definitions(${T} PUBLIC ${SOFTDEVICE_DEFINES})
+
+    list(APPEND link_libraries -L${MCU_NRF51_SDK_PATH}/components/toolchain/gcc)
+
+    if (SOFTDEVICE)
+        set(ld ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/toolchain/armgcc/armgcc_s${SOFTDEVICE}_${MCU_CHIP}.ld)
+
+        if (NOT EXISTS ${ld})
+            message(FATAL_ERROR "No linker script defined for combination: softdevice=${SOFTDEVICE} and chip=${MCU_CHIP}: expected location: ${ld}")
+            return()
+        endif ()
+
+        list(APPEND link_libraries -T${ld})
+    else ()
+        if (${MCU_CHIP} MATCHES "nrf51.*_xxaa")
+            list(APPEND link_libraries -T${MCU_NRF51_SDK_PATH}/components/toolchain/gcc/nrf51_xxaa.ld)
+        elseif (${MCU_CHIP} MATCHES "nrf52.*_xxaa")
+            list(APPEND link_libraries -T${MCU_NRF51_SDK_PATH}/components/toolchain/gcc/nrf52_xxaa.ld)
+        else ()
+            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+        endif ()
     endif ()
+
+    target_link_libraries(${T} PUBLIC ${link_libraries})
+endfunction()
+
+function(_nrf_chip_values INCLUDES_VAR DEFINES_VAR)
+    if (${MCU_CHIP} MATCHES "nrf51.*")
+        list(APPEND defines NRF51)
+        if (${MCU_CHIP} MATCHES "nrf51822")
+            list(APPEND defines NRF51822)
+        else ()
+            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+        endif ()
+    elseif (${MCU_CHIP} MATCHES "nrf52.*")
+        list(APPEND defines NRF52)
+
+        if (${MCU_CHIP} MATCHES "nrf52832_.*")
+            list(APPEND defines NRF52832)
+        else ()
+            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+        endif ()
+    else ()
+        message(FATAL_ERROR "MCU: Unsupported MCU chip: ${MCU_CHIP}")
+    endif ()
+
+    set(${INCLUDES_VAR} ${includes} PARENT_SCOPE)
+    set(${DEFINES_VAR} ${defines} PARENT_SCOPE)
+endfunction()
+
+function(_nrf_softdevice_includes SOFTDEVICE INCLUDES_VAR DEFINES_VAR)
+    message("_nrf_softdevice_includes: SOFTDEVICE=${SOFTDEVICE}")
+    if (SOFTDEVICE)
+        list(APPEND includes ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers)
+
+        if (EXISTS ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf51)
+            list(APPEND includes ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf51)
+        endif ()
+
+        if (EXISTS ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
+            list(APPEND includes ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
+        endif ()
+
+        list(APPEND defines S${SOFTDEVICE} SOFTDEVICE_PRESENT)
+    else ()
+        list(APPEND includes ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/nrf_soc_nosd)
+    endif ()
+
+    set(${INCLUDES_VAR} ${includes} PARENT_SCOPE)
+    set(${DEFINES_VAR} ${defines} PARENT_SCOPE)
 endfunction()
 
 # Toolchain files are executed many times when detecting c/c++ compilers, but it will only read the cache on the first
@@ -176,6 +221,7 @@ function(mcu_nrf51_detect_sdk)
     set(MCU_NRF51_SDK_PATH "${MCU_NRF51_SDK_PATH}" CACHE PATH "MCU: nRF51 SDK path" FORCE)
 endfunction()
 
+#[[
 function(_nrf51_add_library MAIN_TARGET T)
     # message("_nrf51_add_library(${MAIN_TARGET} ${T} ARGN=${ARGN})")
 
@@ -214,8 +260,10 @@ function(_nrf51_add_library MAIN_TARGET T)
 
     _nrf5_set_from_main_target(${MAIN_TARGET} ${T})
 endfunction()
+]]
 
 # TODO: this is really a public function, move arguments to parsed arguments
+#[[
 function(_nrf5_gen_lib TARGET LIB)
     set(options)
     set(oneValueArgs ADD_TO)
@@ -347,3 +395,4 @@ function(_nrf5_gen_lib TARGET LIB)
 
     set(_MCU_NRF51_LIB_CREATED_${T} TRUE CACHE BOOL "" FORCE)
 endfunction()
+]]

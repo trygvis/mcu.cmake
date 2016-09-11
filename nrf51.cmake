@@ -23,5 +23,3 @@ find_program(ARM_SIZE_TOOL arm-none-eabi-size ${TOOLCHAIN_DIR}/bin)
 set(CMAKE_C_COMPILER ${ARM_CC})
 set(CMAKE_CXX_COMPILER ${ARM_CXX})
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-
-add_compile_options("-mcpu=cortex-m0" "-mthumb" "-mabi=aapcs" "--std=gnu99" "-Wall" "-mfloat-abi=soft")
