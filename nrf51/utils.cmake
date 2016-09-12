@@ -9,7 +9,8 @@ function(mcu_nrf5_startup_files VAR)
 endfunction()
 
 function(mcu_add_executable)
-    message("mcu_add_executable: ARGN=${ARGN}")
+    # message("mcu_add_executable: ARGN=${ARGN}")
+
     set(options)
     set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE)
     set(multiValueArgs)
@@ -66,7 +67,6 @@ function(mcu_add_executable)
     if (ARGS_SDK_CONFIG)
         get_filename_component(SDK_CONFIG ${ARGS_SDK_CONFIG} ABSOLUTE)
         get_filename_component(SDK_CONFIG ${SDK_CONFIG} DIRECTORY)
-        message("set_target_properties(${ARGS_TARGET} PROPERTIES SDK_CONFIG ${SDK_CONFIG})")
     endif ()
 
     set_target_properties(${ARGS_TARGET} PROPERTIES SDK_CONFIG "${SDK_CONFIG}")
@@ -76,10 +76,16 @@ function(mcu_add_executable)
     endif ()
 
     _nrf5_set_from_main_target(${ARGS_TARGET})
+
+    add_custom_command(TARGET ${ARGS_TARGET} POST_BUILD
+        COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${ARGS_TARGET}> $<TARGET_FILE:${ARGS_TARGET}>.hex)
+
+    _nrf51_try_add_nrfjprog_targets(${ARGS_TARGET})
+
 endfunction()
 
 function(_nrf5_set_from_main_target T)
-    message("_nrf5_set_from_main_target, T=${T}")
+    # message("_nrf5_set_from_main_target, T=${T}")
     _nrf_chip_values(CHIP_INCLUDES CHIP_DEFINES)
     target_include_directories(${T} PUBLIC ${CHIP_INCLUDES})
     target_compile_definitions(${T} PUBLIC ${CHIP_DEFINES})
@@ -151,7 +157,7 @@ function(_nrf_chip_values INCLUDES_VAR DEFINES_VAR)
 endfunction()
 
 function(_nrf_softdevice_includes SOFTDEVICE INCLUDES_VAR DEFINES_VAR)
-    message("_nrf_softdevice_includes: SOFTDEVICE=${SOFTDEVICE}")
+    # message("_nrf_softdevice_includes: SOFTDEVICE=${SOFTDEVICE}")
     if (SOFTDEVICE)
         list(APPEND includes ${MCU_NRF51_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers)
 
@@ -220,179 +226,3 @@ function(mcu_nrf51_detect_sdk)
     set(MCU_NRF51_SDK_VERSION "${MCU_NRF51_SDK_VERSION}" CACHE STRING "MCU: nRF51 SDK version" FORCE)
     set(MCU_NRF51_SDK_PATH "${MCU_NRF51_SDK_PATH}" CACHE PATH "MCU: nRF51 SDK path" FORCE)
 endfunction()
-
-#[[
-function(_nrf51_add_library MAIN_TARGET T)
-    # message("_nrf51_add_library(${MAIN_TARGET} ${T} ARGN=${ARGN})")
-
-    set(options)
-    set(oneValueArgs EXCLUDE_SOURCES)
-    set(multiValueArgs SOURCE_DIR)
-    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    foreach (DIR IN LISTS ARGS_SOURCE_DIR)
-        file(GLOB_RECURSE SOURCES ${DIR}/*.c)
-
-        if (ARGS_EXCLUDE_SOURCES)
-            list(FILTER SOURCES EXCLUDE REGEX ${ARGS_EXCLUDE_SOURCES})
-        endif ()
-        list(APPEND ALL_SOURCES ${SOURCES})
-
-        file(GLOB_RECURSE HEADERS LIST_DIRECTORIES TRUE ${DIR}/*.h)
-        list(APPEND ALL_HEADERS ${HEADERS})
-
-        # Add all directories that contain header files as private include directories
-        foreach (H IN LISTS HEADERS)
-            get_filename_component(D ${H} DIRECTORY)
-            list(APPEND INCLUDES ${D})
-        endforeach ()
-        list(SORT INCLUDES)
-        list(APPEND ALL_INCLUDES ${INCLUDES})
-    endforeach ()
-
-    add_library(${T} ${type} ${ALL_SOURCES} ${ALL_HEADERS})
-    target_include_directories(${T} PUBLIC ${ALL_INCLUDES})
-
-    list(LENGTH ALL_SOURCES l)
-    if (l EQUAL 0)
-        set_target_properties(${T} PROPERTIES LINKER_LANGUAGE CXX)
-    endif ()
-
-    _nrf5_set_from_main_target(${MAIN_TARGET} ${T})
-endfunction()
-]]
-
-# TODO: this is really a public function, move arguments to parsed arguments
-#[[
-function(_nrf5_gen_lib TARGET LIB)
-    set(options)
-    set(oneValueArgs ADD_TO)
-    set(multiValueArgs)
-    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    set(T ${TARGET}-${LIB})
-
-    if (_MCU_NRF51_LIB_CREATED_${T})
-        # message("MCU: already created: ${T}")
-
-        if (ARGS_ADD_TO)
-            target_link_libraries(${ARGS_ADD_TO} PUBLIC ${T})
-        endif ()
-
-        return()
-    endif ()
-
-    if (NOT LIB)
-        message(FATAL_ERROR "MCU: Missing required argument: LIB")
-    elseif (LIB STREQUAL ble)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/ble/common
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/ble/ble_advertising
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/ble/peer_manager)
-
-        _nrf5_gen_lib(${TARGET} ble_flash ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} timer ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-
-        # Dependency of peer_manager
-        _nrf5_gen_lib(${TARGET} fds ADD_TO ${T})
-
-        # 12+
-        _nrf5_gen_lib(${TARGET} fstorage ADD_TO ${T})
-    elseif (LIB STREQUAL ble_dfu)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/ble/ble_services/ble_dfu)
-
-        _nrf5_gen_lib(${TARGET} ble ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} bootloader ADD_TO ${T})
-    elseif (LIB STREQUAL ble_flash)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/ble_flash)
-
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-    elseif (LIB STREQUAL bootloader AND MCU_NRF51_SDK_VERSION VERSION_GREATER 7)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/bootloader)
-
-        _nrf5_gen_lib(${TARGET} ble ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} gpiote ADD_TO ${T})
-        if (MCU_NRF51_SDK_VERSION VERSION_GREATER 7)
-            _nrf5_gen_lib(${TARGET} section_vars ADD_TO ${T})
-        endif ()
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-    elseif (LIB STREQUAL button)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/button)
-        _nrf5_gen_lib(${TARGET} gpiote ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} hal ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} timer ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-    elseif (LIB STREQUAL delay AND MCU_NRF51_SDK_VERSION VERSION_GREATER 7)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/delay)
-    elseif (LIB STREQUAL drv_common)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/common)
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-    elseif (LIB STREQUAL fds)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/fds)
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} fstorage ADD_TO ${T})
-    elseif (LIB STREQUAL fstorage)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/fstorage)
-
-        _nrf5_gen_lib(${TARGET} section_vars ADD_TO ${T})
-    elseif (LIB STREQUAL gpiote)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/gpiote)
-        _nrf5_gen_lib(${TARGET} drv_common ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} hal ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-    elseif (LIB STREQUAL hal)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/drivers_nrf/hal)
-    elseif (LIB STREQUAL scheduler)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/scheduler)
-
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-    elseif (LIB STREQUAL section_vars AND MCU_NRF51_SDK_VERSION VERSION_GREATER 7)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/experimental_section_vars)
-    elseif (LIB STREQUAL sensorsim)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/sensorsim)
-    elseif (LIB STREQUAL timer)
-        # TODO: make this configurable, could probably be a target property
-
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/timer
-            EXCLUDE_SOURCES "app_timer_.*")
-        target_sources(${T} PUBLIC ${MCU_NRF51_SDK_PATH}/components/libraries/timer/app_timer_appsh.c)
-
-        _nrf5_gen_lib(${TARGET} util ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} delay ADD_TO ${T})
-        _nrf5_gen_lib(${TARGET} scheduler ADD_TO ${T})
-    elseif (LIB STREQUAL util)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/util
-            EXCLUDE_SOURCES ".*cmock.*")
-
-        _nrf5_gen_lib(${TARGET} log ADD_TO ${T})
-    elseif (LIB STREQUAL log)
-        _nrf51_add_library(${TARGET} ${T}
-            SOURCE_DIR ${MCU_NRF51_SDK_PATH}/components/libraries/log)
-        target_include_directories(${T} PUBLIC ${MCU_NRF51_SDK_PATH}/components/log)
-    else ()
-        message(FATAL_ERROR "MCU: Unsupported LIB: ${LIB}")
-    endif ()
-
-    if (ARGS_ADD_TO)
-        target_link_libraries(${ARGS_ADD_TO} PUBLIC ${T})
-    endif ()
-
-    set(_MCU_NRF51_LIB_CREATED_${T} TRUE CACHE BOOL "" FORCE)
-endfunction()
-]]

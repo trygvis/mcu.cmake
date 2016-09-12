@@ -9,3 +9,4 @@ else ()
 endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/mcu_include_directories_from_sources.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/nrf51/nrfjprog.cmake)
