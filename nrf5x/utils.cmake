@@ -18,7 +18,7 @@ function(mcu_add_executable)
     # message("mcu_add_executable: ARGN=${ARGN}")
 
     set(options)
-    set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE)
+    set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE LINKER_SCRIPT)
     set(multiValueArgs)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -26,11 +26,15 @@ function(mcu_add_executable)
         message(FATAL_ERROR "MCU: Missing required argument: TARGET")
     endif ()
 
+    if (ARGS_LINKER_SCRIPT)
+        set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
+    endif ()
+
     if (${MCU_CHIP} MATCHES "nrf51.*")
         set(chip_series nrf51)
     elseif (${MCU_CHIP} MATCHES "nrf52.*")
         set(chip_series nrf52)
-    else()
+    else ()
         message(FATAL_ERROR "MCU: Unsupported chip: ${MCU_CHIP}")
         return()
     endif ()
@@ -117,6 +121,11 @@ endfunction()
 
 function(_nrf5_set_from_main_target T)
     # message("_nrf5_set_from_main_target, T=${T}")
+
+    get_target_property(SDK_CONFIG ${T} SDK_CONFIG)
+    get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
+    get_target_property(MCU_LINKER_SCRIPT ${T} MCU_LINKER_SCRIPT)
+
     _nrf_chip_values(CHIP_INCLUDES CHIP_DEFINES)
     target_include_directories(${T} PUBLIC ${CHIP_INCLUDES})
     target_compile_definitions(${T} PUBLIC ${CHIP_DEFINES})
@@ -128,39 +137,48 @@ function(_nrf5_set_from_main_target T)
         ${MCU_NRF5X_SDK_PATH}/components/toolchain/cmsis/include
         )
 
-    get_target_property(SDK_CONFIG ${T} SDK_CONFIG)
     if (SDK_CONFIG)
         # message("_nrf5_set_from_main_target: SDK_CONFIG=${SDK_CONFIG}")
         target_include_directories(${T} PRIVATE ${SDK_CONFIG})
     endif ()
 
-    get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
     _nrf_softdevice_includes(${MCU_SOFTDEVICE} SOFTDEVICE_INCLUDES SOFTDEVICE_DEFINES)
     target_include_directories(${T} PUBLIC ${SOFTDEVICE_INCLUDES})
     target_compile_definitions(${T} PUBLIC ${SOFTDEVICE_DEFINES})
 
-    list(APPEND link_libraries -L${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc)
+    # Linker script
 
-    if (SOFTDEVICE)
-        set(ld ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/toolchain/armgcc/armgcc_s${SOFTDEVICE}_${MCU_CHIP}.ld)
+    if (NOT MCU_LINKER_SCRIPT)
+        if (SOFTDEVICE)
+            message("MCU: ${T}: No linker script set. Either use the LINKER_SCRIPT argument to mcu_add_executable() "
+                "or set the MCU_LINKER_SCRIPT target property. The softdevice's configuration defines its memory usage "
+                "and is application-specific.")
 
-        if (NOT EXISTS ${ld})
-            message(FATAL_ERROR "No linker script defined for combination: softdevice=${SOFTDEVICE} and chip=${MCU_CHIP}: expected location: ${ld}")
-            return()
-        endif ()
+            set(ld ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/toolchain/armgcc/armgcc_s${SOFTDEVICE}_${MCU_CHIP}.ld)
 
-        list(APPEND link_libraries -T${ld})
-    else ()
-        if (${MCU_CHIP} MATCHES "nrf51.*_xxaa")
-            list(APPEND link_libraries -T${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf51_xxaa.ld)
-        elseif (${MCU_CHIP} MATCHES "nrf52.*_xxaa")
-            list(APPEND link_libraries -T${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf52_xxaa.ld)
+            if (NOT EXISTS ${ld})
+                message("The SDK has a template linker script that can be used as a starting point, but remember to "
+                    "adjust the ORIGIN of the RAM area: ${ld}")
+                return()
+            endif ()
+
+            message(FATAL_ERROR "MCU: Linker script is not configured for ${T}")
         else ()
-            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+            if (${MCU_CHIP} MATCHES "nrf51.*_xxaa")
+                set(ld ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf51_xxaa.ld)
+            elseif (${MCU_CHIP} MATCHES "nrf52.*_xxaa")
+                set(ld ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf52_xxaa.ld)
+            else ()
+                message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+            endif ()
+
+            set_target_properties(${T} PROPERTIES MCU_LINKER_SCRIPT ${ld})
         endif ()
     endif ()
 
-    target_link_libraries(${T} PUBLIC ${link_libraries})
+    target_link_libraries(${T} PUBLIC
+        -L${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc
+        -T$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>)
 endfunction()
 
 function(_nrf_chip_values INCLUDES_VAR DEFINES_VAR)
