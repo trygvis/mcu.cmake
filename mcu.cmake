@@ -12,3 +12,6 @@ else ()
 endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/mcu_include_directories_from_sources.cmake)
+
+# Required on Windows
+set(CMAKE_SYSTEM_NAME Generic)

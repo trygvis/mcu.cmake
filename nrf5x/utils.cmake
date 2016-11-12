@@ -106,9 +106,9 @@ function(mcu_add_executable)
     set_target_properties(${ARGS_TARGET} PROPERTIES SDK_CONFIG "${SDK_CONFIG}")
 
     if (ARGS_SOFTDEVICE)
-        if ("${MCU_NRF5X_SDK_VERSION}" VERSION_EQUAL 12 AND ARGS_SOFTDEVICE STREQUAL 130)
+        if ("${MCU_NRF5X_SDK_VERSION_MAJOR}" VERSION_EQUAL 12 AND ARGS_SOFTDEVICE STREQUAL 130)
             set(hex "${MCU_NRF5X_SDK_PATH}/components/softdevice/s130/hex/s130_nrf51_2.0.1_softdevice.hex")
-        elseif ("${MCU_NRF5X_SDK_VERSION}" VERSION_EQUAL 12 AND ARGS_SOFTDEVICE STREQUAL 132)
+        elseif ("${MCU_NRF5X_SDK_VERSION_MAJOR}" STREQUAL 12 AND ARGS_SOFTDEVICE STREQUAL 132)
             set(hex "${MCU_NRF5X_SDK_PATH}/components/softdevice/s132/hex/s132_nrf52_3.0.0_softdevice.hex")
         else ()
             message(WARNING "Unknown combination of SDK version (${MCU_NRF5X_SDK_VERSION}) and softdevice (${ARGS_SOFTDEVICE}). Some features might be unavailable.")
@@ -192,8 +192,8 @@ function(_nrf5_set_from_main_target T)
     endif ()
 
     target_link_libraries(${T} PUBLIC
-        -L${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc
-        -T$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>)
+        "-L\"${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc\""
+        "-T\"$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>\"")
 endfunction()
 
 function(_nrf_chip_values INCLUDES_VAR DEFINES_VAR)
