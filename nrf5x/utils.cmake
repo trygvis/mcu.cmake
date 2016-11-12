@@ -27,6 +27,9 @@ function(mcu_add_executable)
     endif ()
 
     if (ARGS_LINKER_SCRIPT)
+        if(NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
+            set(ARGS_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_LINKER_SCRIPT}")
+        endif()
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
     endif ()
 
@@ -51,12 +54,24 @@ function(mcu_add_executable)
     target_link_libraries(${ARGS_TARGET} PRIVATE -Wl,-Map=${ARGS_TARGET}.map)
 
     # -Wall -Werror -O3 -g3
+    # "-ffunction-sections"
+    # "-fdata-sections"
+    # "-fno-strict-aliasing"
+    # "-fno-builtin"
+    # "--short-enums"
+
     if (${MCU_CHIP} MATCHES "nrf51.*")
         target_compile_options(${ARGS_TARGET} PUBLIC
             "-mcpu=cortex-m0"
             "-mthumb"
             "-mabi=aapcs"
             "-mfloat-abi=soft")
+        target_link_libraries(${ARGS_TARGET} PRIVATE
+            "-mcpu=cortex-m0"
+            "-mthumb"
+            "-mabi=aapcs"
+            "-Wl,--gc-sections"
+            )
     elseif (${MCU_CHIP} MATCHES "nrf52.*")
         target_compile_options(${ARGS_TARGET} PUBLIC
             "-mcpu=cortex-m4"
@@ -218,7 +233,17 @@ function(_nrf_softdevice_includes SOFTDEVICE INCLUDES_VAR DEFINES_VAR)
             list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
         endif ()
 
-        list(APPEND defines S${SOFTDEVICE} SOFTDEVICE_PRESENT)
+        list(APPEND defines
+            S${SOFTDEVICE}
+            SOFTDEVICE_PRESENT
+            BLE_STACK_SUPPORT_REQD)
+
+        set(NRF_SD_BLE_API_VERSION 2)
+        if (${SOFTDEVICE} MATCHES "132")
+            set(NRF_SD_BLE_API_VERSION 3)
+        endif ()
+        list(APPEND defines NRF_SD_BLE_API_VERSION=${NRF_SD_BLE_API_VERSION})
+
     else ()
         list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/drivers_nrf/nrf_soc_nosd)
     endif ()
