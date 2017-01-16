@@ -20,6 +20,44 @@ function(mcu_add_executable)
         message(FATAL_ERROR "MCU: Missing required argument: TARGET")
     endif ()
 
+    # Linker script
+
+    if (ARGS_LINKER_SCRIPT)
+        if (NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
+            set(ARGS_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_LINKER_SCRIPT}")
+        endif ()
+        set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
+    endif ()
+
+    _stm32_add_compiler_settings(${ARGS_TARGET} ${MCU_CHIP})
+
+    target_link_libraries(${ARGS_TARGET} PUBLIC
+            -mcpu=cortex-m3
+            -mthumb
+            -nostdlib
+            -nostartfiles
+            -Wl,--gc-sections
+            )
+
+    stm32_configure_linker_script(${ARGS_TARGET})
+
+endfunction()
+
+function(mcu_add_library)
+    set(options)
+    set(oneValueArgs TARGET)
+    set(multiValueArgs)
+    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if (NOT ARGS_TARGET)
+        message(FATAL_ERROR "MCU: Missing required argument: TARGET")
+    endif ()
+
+    _stm32_add_compiler_settings(${ARGS_TARGET} ${MCU_CHIP})
+endfunction()
+
+function(_stm32_add_compiler_settings ARGS_TARGET MCU_CHIP)
+
     if (MCU_CHIP MATCHES "stm32f103.4" OR MCU_CHIP MATCHES "stm32f103.6")
         set(size_define STM32F10X_SM)
     elseif (MCU_CHIP MATCHES "stm32f103.8" OR MCU_CHIP MATCHES "stm32f103.b")
@@ -44,25 +82,6 @@ function(mcu_add_executable)
             -mthumb
             -g
             )
-
-    target_link_libraries(${ARGS_TARGET} PUBLIC
-            -mcpu=cortex-m3
-            -mthumb
-            -nostdlib
-            -nostartfiles
-            -Wl,--gc-sections
-            )
-
-    # Linker script
-
-    if (ARGS_LINKER_SCRIPT)
-        if (NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
-            set(ARGS_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_LINKER_SCRIPT}")
-        endif ()
-        set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
-    endif ()
-
-    stm32_configure_linker_script(${ARGS_TARGET})
 
 endfunction()
 
