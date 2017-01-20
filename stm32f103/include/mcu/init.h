@@ -9,6 +9,9 @@ int main();
 
 extern "C" {
 
+__attribute__((used))
+void Default_Handler();
+
 // Symbols for interrupt handlers. They all have a default implementation, but can be overridden by creating a function
 // with the same name.
 
