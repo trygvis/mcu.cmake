@@ -58,5 +58,6 @@ SECTIONS
     _bss_start = ADDR(.bss);
     _bss_end = _bss_start + SIZEOF(.bss);
 
-    __initial_stack_pointer = ORIGIN(RAM) + LENGTH(RAM) - 1;
+    /* The stack pointer has to be aligned on a 8 byte boundary for va_arg(<64 bit quantity>) to work. */
+    __initial_stack_pointer = ALIGN(ORIGIN(RAM) + LENGTH(RAM) - 8, 8);
 }
