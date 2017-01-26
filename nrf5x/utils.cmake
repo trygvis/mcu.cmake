@@ -18,7 +18,7 @@ function(mcu_add_executable)
     # message("mcu_add_executable: ARGN=${ARGN}")
 
     set(options)
-    set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE LINKER_SCRIPT)
+    set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE LINKER_SCRIPT STARTUP_FILES)
     set(multiValueArgs)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -27,9 +27,9 @@ function(mcu_add_executable)
     endif ()
 
     if (ARGS_LINKER_SCRIPT)
-        if(NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
+        if (NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
             set(ARGS_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_LINKER_SCRIPT}")
-        endif()
+        endif ()
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
     endif ()
 
@@ -46,8 +46,14 @@ function(mcu_add_executable)
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_NRF5X_CHIP_SERIES "${chip_series}")
     endif ()
 
-    _nrf5_startup_files(${ARGS_TARGET} STARTUP_FILES)
-    target_sources(${ARGS_TARGET} PUBLIC ${STARTUP_FILES})
+    if (NOT DEFINED ARGS_STARTUP_FILES)
+        set(ARGS_STARTUP_FILES "auto")
+    endif ()
+
+    if (ARGS_STARTUP_FILES STREQUAL "auto")
+        _nrf5_startup_files(${ARGS_TARGET} STARTUP_FILES)
+        target_sources(${ARGS_TARGET} PUBLIC ${STARTUP_FILES})
+    endif ()
 
     target_compile_options(${ARGS_TARGET} PUBLIC -Wall -Werror -g3 -O3)
 
