@@ -17,8 +17,18 @@ function(mcu_add_executable)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT ARGS_TARGET)
-        message(FATAL_ERROR "MCU: Missing required argument: TARGET")
+        message(FATAL_ERROR "MCU: mcu_add_executable: Missing required argument: TARGET")
     endif ()
+
+    _mcu_stm32_configure_target_options(${ARGS_TARGET})
+
+    target_link_libraries(${T} PUBLIC
+        -mcpu=cortex-m3
+        -mthumb
+        -nostdlib
+        -nostartfiles
+        -Wl,--gc-sections
+        )
 
     # Linker script
 
@@ -29,17 +39,7 @@ function(mcu_add_executable)
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
     endif ()
 
-    _stm32_add_compiler_settings(${ARGS_TARGET} ${MCU_CHIP})
-
-    target_link_libraries(${ARGS_TARGET} PUBLIC
-            -mcpu=cortex-m3
-            -mthumb
-            -nostdlib
-            -nostartfiles
-            -Wl,--gc-sections
-            )
-
-    stm32_configure_linker_script(${ARGS_TARGET})
+    _mcu_stm32_configure_linker_script(${ARGS_TARGET})
 
 endfunction()
 
@@ -50,14 +50,14 @@ function(mcu_add_library)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT ARGS_TARGET)
-        message(FATAL_ERROR "MCU: Missing required argument: TARGET")
+        message(FATAL_ERROR "MCU: mcu_add_library: Missing required argument: TARGET")
     endif ()
 
-    _stm32_add_compiler_settings(${ARGS_TARGET} ${MCU_CHIP})
+    _mcu_stm32_configure_target_options(${ARGS_TARGET})
+
 endfunction()
 
-function(_stm32_add_compiler_settings ARGS_TARGET MCU_CHIP)
-
+function(_mcu_stm32_configure_target_options T)
     if (MCU_CHIP MATCHES "stm32f103.4" OR MCU_CHIP MATCHES "stm32f103.6")
         set(size_define STM32F10X_SM)
     elseif (MCU_CHIP MATCHES "stm32f103.8" OR MCU_CHIP MATCHES "stm32f103.b")
@@ -65,27 +65,25 @@ function(_stm32_add_compiler_settings ARGS_TARGET MCU_CHIP)
     elseif (MCU_CHIP MATCHES "stm32f103.c" OR MCU_CHIP MATCHES "stm32f103.d" OR MCU_CHIP MATCHES "stm32f103.e")
         set(size_define STM32F10X_LD)
     else ()
-        message(FATAL_ERROR "Unknown STM32 version: ${MCU_CHIP}")
+        message(FATAL_ERROR "MCU: mcu_add_executable: Unknown STM32 version: ${MCU_CHIP}")
     endif ()
 
-    target_compile_definitions(${ARGS_TARGET} PUBLIC ${size_define})
-
-    # Compile and linker options
+    target_compile_definitions(${T} PUBLIC ${size_define})
 
     set(o_level "$<TARGET_PROPERTY:O_LEVEL>")
-    target_compile_options(${ARGS_TARGET} PUBLIC
-            "$<$<BOOL:${o_level}>:-O${o_level}>$<$<NOT:$<BOOL:${o_level}>>:-O3>")
+    target_compile_options(${T} PUBLIC
+        "$<$<BOOL:${o_level}>:-O${o_level}>$<$<NOT:$<BOOL:${o_level}>>:-O3>")
     unset(o_level)
 
-    target_compile_options(${ARGS_TARGET} PUBLIC
-            -mcpu=cortex-m3
-            -mthumb
-            -g
-            )
+    target_compile_options(${T} PUBLIC
+        -mcpu=cortex-m3
+        -mthumb
+        -g
+        )
 
 endfunction()
 
-function(stm32_configure_linker_script T)
+function(_mcu_stm32_configure_linker_script T)
     get_target_property(MCU_LINKER_SCRIPT ${T} MCU_LINKER_SCRIPT)
 
     if (NOT MCU_LINKER_SCRIPT)
