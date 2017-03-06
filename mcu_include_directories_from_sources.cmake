@@ -9,7 +9,7 @@ function(mcu_include_directories_from_sources)
     set(ALL_INCLUDES)
 
     foreach (DIR IN LISTS ARGS_SOURCE_DIR)
-        file(GLOB_RECURSE SOURCES ${DIR}/*.c)
+        file(GLOB_RECURSE SOURCES ${DIR}/*.c ${DIR}/*.cpp)
 
         foreach (E IN LISTS ARGS_EXCLUDE)
             list(FILTER SOURCES EXCLUDE REGEX ${E})
