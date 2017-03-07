@@ -2,6 +2,7 @@
 #define INIT_HIGH_H
 
 extern "C"
+__attribute__((noreturn))
 int halt();
 
 extern "C"
