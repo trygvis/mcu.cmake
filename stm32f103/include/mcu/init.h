@@ -1,16 +1,15 @@
 #ifndef INIT_HIGH_H
 #define INIT_HIGH_H
 
-extern "C"
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 __attribute__((noreturn))
 int halt();
 
-extern "C"
 int main();
 
-extern "C" {
-
-__attribute__((used))
 void Default_Handler();
 
 // Symbols for interrupt handlers. They all have a default implementation, but can be overridden by creating a function
@@ -121,8 +120,9 @@ extern void EXTI15_10_IRQHandler();
 extern void RTCAlarm_IRQHandler();
 
 extern void USBWakeUp_IRQHandler();
-}
 
+#ifdef __cplusplus
+} // extern "C"
 
 #include <limits>
 
@@ -136,5 +136,7 @@ R SizeOfArray(const T(&)[N]) {
 }
 
 }; // namespace mcu
+
+#endif // __cplusplus
 
 #endif

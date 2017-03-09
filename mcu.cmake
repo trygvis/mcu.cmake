@@ -19,6 +19,11 @@ endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/mcu_include_directories_from_sources.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/binutils.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/elfstats.cmake)
+
+set(MCU_ELFSTATS_MODE AUTO)
+set(MCU_BINUTILS_MODE AUTO)
+set(MCU_LTO_MODE AUTO)
 
 # Required on Windows
 set(CMAKE_SYSTEM_NAME Generic)

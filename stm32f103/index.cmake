@@ -20,6 +20,10 @@ function(mcu_add_executable)
         message(FATAL_ERROR "MCU: mcu_add_executable: Missing required argument: TARGET")
     endif ()
 
+    # Work around LTO bug: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=69866
+    set_source_files_properties("${MCU_BASEDIR}/stm32f103/src/init_high.cpp" PROPERTIES COMPILE_FLAGS -fno-lto)
+    set_source_files_properties("${MCU_BASEDIR}/stm32f103/src/default_handler.cpp" PROPERTIES COMPILE_FLAGS -fno-lto)
+
     _mcu_stm32_configure_target_options(${ARGS_TARGET})
 
     target_link_libraries(${T} PUBLIC
@@ -40,6 +44,13 @@ function(mcu_add_executable)
     endif ()
 
     _mcu_stm32_configure_linker_script(${ARGS_TARGET})
+
+    if(MCU_BINUTILS_MODE STREQUAL AUTO)
+        mcu_binutils_create_dump_targets(${T})
+    endif()
+    if(MCU_ELFSTATS_MODE STREQUAL AUTO)
+        mcu_elfstats_create_targets(${T})
+    endif()
 
 endfunction()
 
@@ -81,6 +92,12 @@ function(_mcu_stm32_configure_target_options T)
         -g
         )
 
+    if(MCU_LTO_MODE STREQUAL AUTO)
+        target_compile_options(${T} PRIVATE
+            -flto
+            )
+    endif()
+
 endfunction()
 
 function(_mcu_stm32_configure_linker_script T)
@@ -94,5 +111,5 @@ function(_mcu_stm32_configure_linker_script T)
     endif ()
 
     target_link_libraries(${T} PUBLIC
-            "-T\"$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>\"")
+        "-T\"$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>\"")
 endfunction()
