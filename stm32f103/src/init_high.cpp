@@ -47,6 +47,12 @@ void __aeabi_unwind_cpp_pr2()
 {
 }
 
+namespace std {
+void __throw_bad_function_call() {
+    halt();
+}
+}
+
 extern "C"
 __attribute__((used))
 disable_replace_with_library_calls
