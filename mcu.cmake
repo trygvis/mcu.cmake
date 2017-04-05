@@ -27,11 +27,9 @@ endif ()
 if (NOT DEFINED MCU_BINUTILS_MODE)
     set(MCU_BINUTILS_MODE AUTO)
 endif ()
-message("MCU_LTO_MODE=${MCU_LTO_MODE}")
 if (NOT DEFINED MCU_LTO_MODE)
     set(MCU_LTO_MODE AUTO)
 endif ()
-message("MCU_LTO_MODE=${MCU_LTO_MODE}")
 
 # Required on Windows
 set(CMAKE_SYSTEM_NAME Generic)
