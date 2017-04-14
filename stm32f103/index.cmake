@@ -26,7 +26,7 @@ function(mcu_add_executable)
 
     _mcu_stm32_configure_target_options(${ARGS_TARGET})
 
-    target_link_libraries(${T} PUBLIC
+    target_link_libraries(${ARGS_TARGET} PUBLIC
         -mcpu=cortex-m3
         -mthumb
         -nostdlib
@@ -46,10 +46,10 @@ function(mcu_add_executable)
     _mcu_stm32_configure_linker_script(${ARGS_TARGET})
 
     if(MCU_BINUTILS_MODE STREQUAL AUTO)
-        mcu_binutils_create_dump_targets(${T})
+        mcu_binutils_create_dump_targets(${ARGS_TARGET})
     endif()
     if(MCU_ELFSTATS_MODE STREQUAL AUTO)
-        mcu_elfstats_create_targets(${T})
+        mcu_elfstats_create_targets(${ARGS_TARGET})
     endif()
 
 endfunction()
