@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <stm32f10x.h>
-#include <core_cm3.h>
 
 #include "mcu/init.h"
 
@@ -16,7 +15,9 @@ struct {
     uint32_t BFAR;
 } Default_Handler_Info;
 
+#ifndef dbg_printf
 #define dbg_printf printf
+#endif
 
 extern "C"
 __attribute__((used))
