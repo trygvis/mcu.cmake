@@ -1,8 +1,7 @@
 #include <cstdint>
 #include <cstddef>
 #include <cstdio>
-#include "stm32f10x.h"
-#include "mcu/init.h"
+#include "mcu/init-impl.h"
 
 // This is required to keep the compiler from replacing parts of a function with calls to library functions like memcpy.
 # define disable_replace_with_library_calls \

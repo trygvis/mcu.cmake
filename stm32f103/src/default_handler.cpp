@@ -1,9 +1,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
-#include <stm32f10x.h>
-
-#include "mcu/init.h"
+#include "mcu/init-impl.h"
 
 __attribute__((used))
 struct {
