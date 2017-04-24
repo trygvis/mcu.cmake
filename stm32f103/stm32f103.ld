@@ -16,7 +16,7 @@ SECTIONS
     {
         /* The first word has to be the initial stack pointer */
         LONG(__initial_stack_pointer);
-        KEEP(*/init_high.cpp.obj(.isr_vectors))
+        KEEP(*(.isr_vectors))
     } >FLASH
     ASSERT(SIZEOF(.isr) > 100, "The isr_vectors section is too small")
     ASSERT(SIZEOF(.isr) < 1000, "The isr_vectors section is too big")
@@ -57,6 +57,13 @@ SECTIONS
 
     _bss_start = ADDR(.bss);
     _bss_end = _bss_start + SIZEOF(.bss);
+
+    /* STM32CubeMX Compatability */
+    _sbss = _bss_start;
+    _ebss = _bss_end;
+    _sdata = _copy_data_store;
+    _edata = _copy_data_store_end;
+    _sidata = _copy_data_load;
 
     /* The stack pointer has to be aligned on a 8 byte boundary for va_arg(<64 bit quantity>) to work. */
     __initial_stack_pointer = ALIGN(ORIGIN(RAM) + LENGTH(RAM) - 8, 8);

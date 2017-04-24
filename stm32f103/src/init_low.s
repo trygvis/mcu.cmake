@@ -5,17 +5,6 @@
 .section .text
 
 .thumb_func
-.global _Reset_Handler
-_Reset_Handler:
-    bl init_high
-    b halt
-
-.thumb_func
-.global halt
-halt:
-    b .
-
-.thumb_func
 .global NMI_Handler
 NMI_Handler:
     b halt
