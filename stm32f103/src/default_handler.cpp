@@ -9,7 +9,6 @@ struct {
     uint32_t HFSR;
     uint32_t DFSR;
     uint32_t AFSR;
-//    uint32_t MMAR;
     uint32_t BFAR;
 } Default_Handler_Info;
 

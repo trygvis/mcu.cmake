@@ -3,6 +3,7 @@ set(CMAKE_CXX_STANDARD "14")
 
 set(MCU_INIT_SOURCES "")
 list(APPEND MCU_INIT_SOURCES "${MCU_BASEDIR}/stm32f103/src/init_low.s")
+list(APPEND MCU_INIT_SOURCES "${MCU_BASEDIR}/stm32f103/src/breakpoint.s")
 list(APPEND MCU_INIT_SOURCES "${MCU_BASEDIR}/stm32f103/src/init_high.cpp")
 list(APPEND MCU_INIT_SOURCES "${MCU_BASEDIR}/stm32f103/src/default_handler.cpp")
 list(APPEND MCU_INIT_SOURCES "${MCU_BASEDIR}/stm32f103/include/mcu/init.h")

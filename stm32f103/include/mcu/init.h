@@ -8,6 +8,8 @@ extern "C" {
 __attribute__((noreturn))
 int halt();
 
+int breakpoint();
+
 int main();
 
 void Default_Handler();
