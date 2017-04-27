@@ -28,7 +28,8 @@ if (NOT DEFINED MCU_BINUTILS_MODE)
     set(MCU_BINUTILS_MODE AUTO)
 endif ()
 if (NOT DEFINED MCU_LTO_MODE)
-    set(MCU_LTO_MODE AUTO)
+    set(MCU_LTO_MODE TRUE)
+    set(MCU_LTO_MODE_AUTO TRUE)
 endif ()
 
 # Required on Windows

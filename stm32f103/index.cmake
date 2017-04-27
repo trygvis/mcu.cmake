@@ -35,6 +35,11 @@ function(mcu_add_executable)
         -Wl,--gc-sections
         )
 
+    # For LTO with GCC this has to be here
+    if (MCU_LTO_MODE)
+        target_link_libraries(${ARGS_TARGET} PUBLIC -g3)
+    endif()
+
     # Linker script
 
     if (ARGS_LINKER_SCRIPT)
@@ -98,13 +103,12 @@ function(_mcu_stm32_configure_target_options T)
     target_compile_options(${T} PUBLIC
         -mcpu=cortex-m3
         -mthumb
-        -g
+        -g3
         )
 
-    if(MCU_LTO_MODE STREQUAL AUTO)
-        target_compile_options(${T} PRIVATE
-            -flto
-            )
+    # GCC needs to be told to include the debugging info when linking too.
+    if(MCU_LTO_MODE)
+        target_compile_options(${T} PRIVATE -flto)
     endif()
 
 endfunction()
