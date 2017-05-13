@@ -100,6 +100,8 @@ function(_mcu_stm32_configure_target_options T)
         "$<$<BOOL:${o_level}>:-O${o_level}>$<$<NOT:$<BOOL:${o_level}>>:-O3>")
     unset(o_level)
 
+    target_compile_options(${T} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>)
+
     target_compile_options(${T} PUBLIC
         -mcpu=cortex-m3
         -mthumb
