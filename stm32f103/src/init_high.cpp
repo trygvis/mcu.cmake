@@ -82,6 +82,20 @@ void *memcpy(void *destination, void *source, size_t num)
 
 extern "C"
 __attribute__((used))
+disable_replace_with_library_calls
+size_t strlen(const char *s)
+{
+    size_t size = 0;
+
+    while (*s++ != 0) {
+        size++;
+    }
+
+    return size;
+}
+
+extern "C"
+__attribute__((used))
 void __libc_init_array()
 {
     // Initialize c++ constructors
