@@ -79,7 +79,7 @@ endfunction()
 
 function(_mcu_stm32_configure_target_options T)
     if (MCU_USE_STM32CUBEMX)
-        if (MCU_CHIP MATCHES "stm32f(100|101|102|103|105|107).([6BCEG])")
+        if (MCU_CHIP MATCHES "stm32f(100|101|102|103|105|107).([68BCEG])")
             set(size_define STM32F${CMAKE_MATCH_1}x${CMAKE_MATCH_2})
         else()
             message(FATAL_ERROR "MCU: mcu_add_executable: Unknown STM32 chip: ${MCU_CHIP}")
