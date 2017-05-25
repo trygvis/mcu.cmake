@@ -61,7 +61,7 @@ uint32_t isr_vectors[74] = {
         (uint32_t) USART2_IRQHandler,
         0,
         (uint32_t) EXTI15_10_IRQHandler,
-#if MCUCMAKE_USING_STM32CUBEMX
+#if MCUCMAKE_USING_STM32CUBE
         (uint32_t) RTC_Alarm_IRQHandler,
 #else
         (uint32_t) RTCAlarm_IRQHandler,

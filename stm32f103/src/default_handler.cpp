@@ -212,7 +212,7 @@ void USART3_IRQHandler() __attribute__ ((weak, alias("Default_Handler")));
 
 void EXTI15_10_IRQHandler() __attribute__ ((weak, alias("Default_Handler")));
 
-#if MCUCMAKE_USING_STM32CUBEMX
+#if MCUCMAKE_USING_STM32CUBE
 void RTC_Alarm_IRQHandler() __attribute__ ((weak, alias("Default_Handler")));
 #else
 void RTCAlarm_IRQHandler() __attribute__ ((weak, alias("Default_Handler")));

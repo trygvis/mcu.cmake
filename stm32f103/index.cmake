@@ -78,7 +78,11 @@ function(mcu_add_library)
 endfunction()
 
 function(_mcu_stm32_configure_target_options T)
-    if (MCU_USE_STM32CUBEMX)
+    if(MCU_USE_STM32CUBEMX)
+        message(ERROR_FATAL "MCU_USE_STM32CUBEMX has been renamed to MCU_USE_STM32CUBE")
+    endif()
+
+    if (MCU_USE_STM32CUBE)
         if (MCU_CHIP MATCHES "stm32f(100|101|102|103|105|107).([68BCEG])")
             set(size_define STM32F${CMAKE_MATCH_1}x${CMAKE_MATCH_2})
         else()

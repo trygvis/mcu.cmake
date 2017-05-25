@@ -58,7 +58,7 @@ SECTIONS
     _bss_start = ADDR(.bss);
     _bss_end = _bss_start + SIZEOF(.bss);
 
-    /* STM32CubeMX Compatability */
+    /* Stm32cube compatibility */
     _sbss = _bss_start;
     _ebss = _bss_end;
     _sdata = _copy_data_store;

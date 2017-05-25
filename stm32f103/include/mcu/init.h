@@ -119,7 +119,7 @@ extern void USART3_IRQHandler();
 
 extern void EXTI15_10_IRQHandler();
 
-#if MCUCMAKE_USING_STM32CUBEMX
+#if MCUCMAKE_USING_STM32CUBE
 extern void RTC_Alarm_IRQHandler();
 #else
 extern void RTCAlarm_IRQHandler();
