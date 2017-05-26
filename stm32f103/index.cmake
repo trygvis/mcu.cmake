@@ -79,7 +79,7 @@ endfunction()
 
 function(_mcu_stm32_configure_target_options T)
     if(MCU_USE_STM32CUBEMX)
-        message(ERROR_FATAL "MCU_USE_STM32CUBEMX has been renamed to MCU_USE_STM32CUBE")
+        message(FATAL_ERROR "MCU_USE_STM32CUBEMX has been renamed to MCU_USE_STM32CUBE")
     endif()
 
     if (MCU_USE_STM32CUBE)
