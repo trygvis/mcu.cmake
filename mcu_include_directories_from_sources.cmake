@@ -1,3 +1,5 @@
+# TODO: Only include .h files in HEADERS_VAR
+# TODO: Add DEBUG flag that uses message() to show arguments, variable names the collections will be set to and their values.
 function(mcu_include_directories_from_sources)
     set(options)
     set(oneValueArgs SOURCES_VAR HEADERS_VAR INCLUDES_VAR)
