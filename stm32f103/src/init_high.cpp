@@ -83,6 +83,24 @@ void *memcpy(void *destination, void *source, size_t num)
 extern "C"
 __attribute__((used))
 disable_replace_with_library_calls
+int memcmp(const void *a_ptr, const void *b_ptr, size_t num) {
+    int result;
+
+    auto a = static_cast<const unsigned char *>(a_ptr);
+    auto b = static_cast<const unsigned char *>(b_ptr);
+    result = 0;
+    while ((num > 0) && (result == 0)) {
+        result = *a - *b;
+        num--;
+        a++;
+        b++;
+    }
+    return result;
+}
+
+extern "C"
+__attribute__((used))
+disable_replace_with_library_calls
 size_t strlen(const char *s)
 {
     size_t size = 0;
