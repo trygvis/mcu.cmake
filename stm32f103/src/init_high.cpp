@@ -7,8 +7,6 @@
 # define disable_replace_with_library_calls \
     __attribute__ ((__optimize__ ("-fno-tree-loop-distribute-patterns")))
 
-using namespace mcu;
-
 /**
  * Symbols that are defined by the linker
  */

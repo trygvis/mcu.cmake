@@ -132,17 +132,6 @@ extern void USBWakeUp_IRQHandler();
 
 #include <limits>
 
-namespace mcu {
-
-template<typename R = std::size_t, typename T, std::size_t N>
-static inline constexpr
-R SizeOfArray(const T(&)[N]) {
-    static_assert(std::numeric_limits<R>::max() >= N, "N does not fit in R");
-    return static_cast<R>(N);
-}
-
-}; // namespace mcu
-
 #endif // __cplusplus
 
 #endif
