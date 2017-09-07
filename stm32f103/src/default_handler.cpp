@@ -16,6 +16,16 @@ struct {
 #define dbg_printf printf
 #endif
 
+#ifndef SCB_HFSR_DEBUGEVT
+#define SCB_HFSR_DEBUGEVT SCB_HFSR_DEBUGEVT_Msk
+#endif
+#ifndef SCB_HFSR_FORCED
+#define SCB_HFSR_FORCED SCB_HFSR_FORCED_Msk
+#endif
+#ifndef SCB_HFSR_VECTTBL
+#define SCB_HFSR_VECTTBL SCB_HFSR_VECTTBL_Msk
+#endif
+
 extern "C"
 __attribute__((used))
 void Default_Handler()
@@ -42,65 +52,101 @@ void Default_Handler()
     }
 
     dbg_printf("CFSR: 0x%08lx\n", Default_Handler_Info.CFSR);
+#ifdef SCB_CFSR_DIVBYZERO
     if (Default_Handler_Info.CFSR & SCB_CFSR_DIVBYZERO) {
         dbg_printf("      UFSR.DIVBYZERO\n");
     }
+#endif
+#ifdef SCB_CFSR_UNALIGNED
     if (Default_Handler_Info.CFSR & SCB_CFSR_UNALIGNED) {
         dbg_printf("      UFSR.UNALIGED\n");
     }
+#endif
+#ifdef SCB_CFSR_NOCP
     if (Default_Handler_Info.CFSR & SCB_CFSR_NOCP) {
         dbg_printf("      UFSR.NOCP\n");
     }
+#endif
+#ifdef SCB_CFSR_INVPC
     if (Default_Handler_Info.CFSR & SCB_CFSR_INVPC) {
         dbg_printf("      UFSR.INVPC\n");
     }
+#endif
+#ifdef SCB_CFSR_INVSTATE
     if (Default_Handler_Info.CFSR & SCB_CFSR_INVSTATE) {
         dbg_printf("      UFSR.INVSTATE\n");
     }
+#endif
+#ifdef SCB_CFSR_UNDEFINSTR
     if (Default_Handler_Info.CFSR & SCB_CFSR_UNDEFINSTR) {
         dbg_printf("      UFSR.UNDEFINSTR\n");
     }
+#endif
+#ifdef SCB_CFSR_BFARVALID
     if (Default_Handler_Info.CFSR & SCB_CFSR_BFARVALID) {
         dbg_printf("      BFSR.BFARVALID\n");
     }
+#endif
+#ifdef SCB_CFSR_STKERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_STKERR) {
         dbg_printf("      BFSR.STKERR\n");
     }
+#endif
+#ifdef SCB_CFSR_UNSTKERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_UNSTKERR) {
         dbg_printf("      BFSR.UNSTKERR\n");
     }
+#endif
+#ifdef SCB_CFSR_IMPRECISERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_IMPRECISERR) {
         dbg_printf("      BFSR.IMPRECISERR\n");
     }
+#endif
+#ifdef SCB_CFSR_PRECISERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_PRECISERR) {
         dbg_printf("      BFSR.PRECISERR\n");
     }
+#endif
+#ifdef SCB_CFSR_IBUSERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_IBUSERR) {
         dbg_printf("      BFSR.IBUSERR\n");
     }
+#endif
+#ifdef SCB_CFSR_MMARVALID
     if (Default_Handler_Info.CFSR & SCB_CFSR_MMARVALID) {
         dbg_printf("      MMFSR.MMARVALID\n");
     }
+#endif
+#ifdef SCB_CFSR_MSTKERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_MSTKERR) {
         dbg_printf("      MMFSR.MSTKERR\n");
     }
+#endif
+#ifdef SCB_CFSR_MUNSTKERR
     if (Default_Handler_Info.CFSR & SCB_CFSR_MUNSTKERR) {
         dbg_printf("      MMFSR.MUNSTKERR\n");
     }
+#endif
+#ifdef SCB_CFSR_DACCVIOL
     if (Default_Handler_Info.CFSR & SCB_CFSR_DACCVIOL) {
         dbg_printf("      MMFSR.DACCVIOL\n");
     }
+#endif
+#ifdef SCB_CFSR_IACCVIOL
     if (Default_Handler_Info.CFSR & SCB_CFSR_IACCVIOL) {
         dbg_printf("      MMFSR.IACCVIOL\n");
     }
+#endif
     dbg_printf("DFSR: 0x%08lx\n", Default_Handler_Info.DFSR);
     dbg_printf("AFSR: 0x%08lx\n", Default_Handler_Info.AFSR);
 
+#ifdef SCB_CFSR_BFARVALID
     if (Default_Handler_Info.CFSR & SCB_CFSR_BFARVALID) {
         dbg_printf("BFAR: 0x%08lx\n", Default_Handler_Info.BFAR);
     } else {
         dbg_printf("BFAR: <invalid>\n");
     }
+#endif
 
     dbg_printf("NVIC:\n");
     for (size_t i = 0; i < sizeof(NVIC->IABR) / sizeof(NVIC->IABR[0]); i++) {
