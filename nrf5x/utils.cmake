@@ -18,13 +18,24 @@ function(mcu_add_executable)
     # message("mcu_add_executable: ARGN=${ARGN}")
 
     set(options)
-    set(oneValueArgs TARGET SDK_CONFIG SOFTDEVICE LINKER_SCRIPT STARTUP_FILES)
+    set(oneValueArgs
+        # Common options
+        TARGET LINKER_SCRIPT CHIP STARTUP_FILES
+        # nRF specific options
+        SDK_CONFIG SOFTDEVICE)
     set(multiValueArgs)
     cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT ARGS_TARGET)
         message(FATAL_ERROR "MCU: Missing required argument: TARGET")
     endif ()
+
+    if (ARGS_CHIP)
+        set(chip ${ARGS_CHIP})
+    else()
+        set(chip ${MCU_CHIP})
+    endif()
+    set_target_properties(${ARGS_TARGET} PROPERTIES MCU_CHIP "${MCU_CHIP}")
 
     if (ARGS_LINKER_SCRIPT)
         if (NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
@@ -33,12 +44,12 @@ function(mcu_add_executable)
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
     endif ()
 
-    if (${MCU_CHIP} MATCHES "nrf51.*")
+    if (${chip} MATCHES "nrf51.*")
         set(chip_series nrf51)
-    elseif (${MCU_CHIP} MATCHES "nrf52.*")
+    elseif (${chip} MATCHES "nrf52.*")
         set(chip_series nrf52)
     else ()
-        message(FATAL_ERROR "MCU: Unsupported chip: ${MCU_CHIP}")
+        message(FATAL_ERROR "MCU: Unsupported chip: ${chip}")
         return()
     endif ()
 
@@ -66,7 +77,7 @@ function(mcu_add_executable)
     # "-fno-builtin"
     # "--short-enums"
 
-    if (${MCU_CHIP} MATCHES "nrf51.*")
+    if (${chip} MATCHES "nrf51.*")
         target_compile_options(${ARGS_TARGET} PUBLIC
             "-mcpu=cortex-m0"
             "-mthumb"
@@ -78,7 +89,7 @@ function(mcu_add_executable)
             "-mabi=aapcs"
             "-Wl,--gc-sections"
             )
-    elseif (${MCU_CHIP} MATCHES "nrf52.*")
+    elseif (${chip} MATCHES "nrf52.*")
         target_compile_options(${ARGS_TARGET} PUBLIC
             "-mcpu=cortex-m4"
             "-mthumb"
@@ -147,7 +158,7 @@ function(_nrf5_set_from_main_target T)
     get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
     get_target_property(MCU_LINKER_SCRIPT ${T} MCU_LINKER_SCRIPT)
 
-    _nrf_chip_values(CHIP_INCLUDES CHIP_DEFINES)
+    _nrf_chip_values(${chip} CHIP_INCLUDES CHIP_DEFINES)
     target_include_directories(${T} PUBLIC ${CHIP_INCLUDES})
     target_compile_definitions(${T} PUBLIC ${CHIP_DEFINES})
 
@@ -175,7 +186,7 @@ function(_nrf5_set_from_main_target T)
                 "or set the MCU_LINKER_SCRIPT target property. The softdevice's configuration defines its memory usage "
                 "and is application-specific.")
 
-            set(ld ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/toolchain/armgcc/armgcc_s${SOFTDEVICE}_${MCU_CHIP}.ld)
+            set(ld ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/toolchain/armgcc/armgcc_s${SOFTDEVICE}_${chip}.ld)
 
             if (NOT EXISTS ${ld})
                 message("The SDK has a template linker script that can be used as a starting point, but remember to "
@@ -185,12 +196,14 @@ function(_nrf5_set_from_main_target T)
 
             message(FATAL_ERROR "MCU: Linker script is not configured for ${T}")
         else ()
-            if (${MCU_CHIP} MATCHES "nrf51.*_xxaa")
+            if (${chip} MATCHES "nrf51.*_xxaa")
                 set(ld ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf51_xxaa.ld)
-            elseif (${MCU_CHIP} MATCHES "nrf52.*_xxaa")
+            elseif (${chip} MATCHES "nrf51.*_xxac")
+                set(ld ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf51_xxac.ld)
+            elseif (${chip} MATCHES "nrf52.*_xxaa")
                 set(ld ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/nrf52_xxaa.ld)
             else ()
-                message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+                message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${chip}")
             endif ()
 
             set_target_properties(${T} PROPERTIES MCU_LINKER_SCRIPT ${ld})
@@ -202,26 +215,26 @@ function(_nrf5_set_from_main_target T)
         "-T\"$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>\"")
 endfunction()
 
-function(_nrf_chip_values INCLUDES_VAR DEFINES_VAR)
-    if (${MCU_CHIP} MATCHES "nrf51.*")
+function(_nrf_chip_values chip INCLUDES_VAR DEFINES_VAR)
+    if (${chip} MATCHES "nrf51.*")
         list(APPEND defines NRF51)
-        if (${MCU_CHIP} MATCHES "nrf51822")
+        if (${chip} MATCHES "nrf51822")
             list(APPEND defines NRF51822)
-        elseif (${MCU_CHIP} MATCHES "nrf51422")
+        elseif (${chip} MATCHES "nrf51422")
             list(APPEND defines NRF51422)
         else ()
-            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${chip}")
         endif ()
-    elseif (${MCU_CHIP} MATCHES "nrf52.*")
+    elseif (${chip} MATCHES "nrf52.*")
         list(APPEND defines NRF52)
 
-        if (${MCU_CHIP} MATCHES "nrf52832_.*")
+        if (${chip} MATCHES "nrf52832_.*")
             list(APPEND defines NRF52832)
         else ()
-            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${MCU_CHIP}")
+            message(FATAL_ERROR "MCU: Unsupported nRF MCU chip: ${chip}")
         endif ()
     else ()
-        message(FATAL_ERROR "MCU: Unsupported MCU chip: ${MCU_CHIP}")
+        message(FATAL_ERROR "MCU: Unsupported MCU chip: ${chip}")
     endif ()
 
     set(${INCLUDES_VAR} ${includes} PARENT_SCOPE)
