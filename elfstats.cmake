@@ -1,7 +1,7 @@
 include(ExternalProject)
 
 set(MCU_ELFSTATS_BIN "${CMAKE_BINARY_DIR}")
-message("MCU_ELFSTATS_BIN=${MCU_ELFSTATS_BIN}")
+#message("MCU_ELFSTATS_BIN=${MCU_ELFSTATS_BIN}")
 
 ExternalProject_Add(elfstats
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/elfstats

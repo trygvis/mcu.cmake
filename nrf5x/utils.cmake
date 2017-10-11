@@ -1,4 +1,5 @@
 include(${CMAKE_CURRENT_LIST_DIR}/nrfjprog.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/jlink.cmake)
 
 function(_nrf5_startup_files T VAR)
     get_target_property(MCU_NRF5X_CHIP_SERIES ${T} MCU_NRF5X_CHIP_SERIES)
@@ -134,6 +135,10 @@ function(mcu_add_executable)
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_SOFTDEVICE "${ARGS_SOFTDEVICE}")
 
         if (hex)
+            file(RELATIVE_PATH hex_rel "${CMAKE_CURRENT_LIST_DIR}" "${hex}")
+            message(STATUS "MCU: Softdevice configuration for ${T}")
+            message(STATUS "    Version ${ARGS_SOFTDEVICE}")
+            message(STATUS "    Hex     ${hex_rel}")
             set_target_properties(${ARGS_TARGET} PROPERTIES MCU_SOFTDEVICE_HEX "${hex}")
         endif ()
     endif ()
@@ -148,15 +153,16 @@ function(mcu_add_executable)
         COMMAND ${CMAKE_NM} $<TARGET_FILE:${ARGS_TARGET}> > $<TARGET_FILE:${ARGS_TARGET}>.nm)
 
     _nrf5_try_add_nrfjprog_targets(${ARGS_TARGET})
+    _nrf5_try_add_jlink_targets(${ARGS_TARGET})
 
 endfunction()
 
 function(_nrf5_set_from_main_target T)
     # message("_nrf5_set_from_main_target, T=${T}")
 
-    get_target_property(SDK_CONFIG ${T} SDK_CONFIG)
-    get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
-    get_target_property(MCU_LINKER_SCRIPT ${T} MCU_LINKER_SCRIPT)
+    get_target_property(sdk_config ${T} SDK_CONFIG)
+    get_target_property(softdevice ${T} MCU_SOFTDEVICE)
+    get_target_property(mcu_linker_script ${T} MCU_LINKER_SCRIPT)
 
     _nrf_chip_values(${chip} CHIP_INCLUDES CHIP_DEFINES)
     target_include_directories(${T} PUBLIC ${CHIP_INCLUDES})
@@ -169,24 +175,24 @@ function(_nrf5_set_from_main_target T)
         ${MCU_NRF5X_SDK_PATH}/components/toolchain/cmsis/include
         )
 
-    if (SDK_CONFIG)
-        # message("_nrf5_set_from_main_target: SDK_CONFIG=${SDK_CONFIG}")
-        target_include_directories(${T} PRIVATE ${SDK_CONFIG})
+    if (sdk_config)
+        # message("_nrf5_set_from_main_target: sdk_config=${sdk_config}")
+        target_include_directories(${T} PRIVATE ${sdk_config})
     endif ()
 
-    _nrf_softdevice_includes(${MCU_SOFTDEVICE} SOFTDEVICE_INCLUDES SOFTDEVICE_DEFINES)
+    _nrf_softdevice_includes(${softdevice} SOFTDEVICE_INCLUDES SOFTDEVICE_DEFINES)
     target_include_directories(${T} PUBLIC ${SOFTDEVICE_INCLUDES})
     target_compile_definitions(${T} PUBLIC ${SOFTDEVICE_DEFINES})
 
     # Linker script
 
-    if (NOT MCU_LINKER_SCRIPT)
-        if (SOFTDEVICE)
+    if (NOT mcu_linker_script)
+        if (softdevice)
             message("MCU: ${T}: No linker script set. Either use the LINKER_SCRIPT argument to mcu_add_executable() "
                 "or set the MCU_LINKER_SCRIPT target property. The softdevice's configuration defines its memory usage "
                 "and is application-specific.")
 
-            set(ld ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/toolchain/armgcc/armgcc_s${SOFTDEVICE}_${chip}.ld)
+            set(ld ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${softdevice}/toolchain/armgcc/armgcc_s${softdevice}_${chip}.ld)
 
             if (NOT EXISTS ${ld})
                 message("The SDK has a template linker script that can be used as a starting point, but remember to "
@@ -207,12 +213,14 @@ function(_nrf5_set_from_main_target T)
             endif ()
 
             set_target_properties(${T} PROPERTIES MCU_LINKER_SCRIPT ${ld})
+            message(STATUS "MCU: ${T}: Linker script: ${ld}")
         endif ()
     endif ()
 
     target_link_libraries(${T} PUBLIC
         "-L\"${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc\""
         "-T\"$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>\"")
+    # TODO: here it would be useful to have a dependency on the LD script so the target is relinked when it changes.
 endfunction()
 
 function(_nrf_chip_values chip INCLUDES_VAR DEFINES_VAR)

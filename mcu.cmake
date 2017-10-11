@@ -1,5 +1,14 @@
 set(MCU_BASEDIR "${CMAKE_CURRENT_LIST_DIR}" CACHE PATH "The mcu.cmake installation path" FORCE)
-message("MCU_BASEDIR=${MCU_BASEDIR}")
+#message("MCU_BASEDIR=${MCU_BASEDIR}")
+
+if (WIN32)
+    # Required on Windows
+    set(CMAKE_SYSTEM_NAME Generic)
+
+    SET(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+    SET(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+    SET(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+endif ()
 
 if (NOT MCU_CHIP)
     message(FATAL_ERROR "Missing required argument MCU_CHIP.")
@@ -31,6 +40,3 @@ if (NOT DEFINED MCU_LTO_MODE)
     set(MCU_LTO_MODE TRUE)
     set(MCU_LTO_MODE_AUTO TRUE)
 endif ()
-
-# Required on Windows
-set(CMAKE_SYSTEM_NAME Generic)
