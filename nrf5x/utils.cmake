@@ -15,35 +15,13 @@ function(_nrf5_startup_files T VAR)
     set(${VAR} ${startup} PARENT_SCOPE)
 endfunction()
 
-function(mcu_add_executable)
-    # message("mcu_add_executable: ARGN=${ARGN}")
-
-    set(options)
-    set(oneValueArgs
-        # Common options
-        TARGET LINKER_SCRIPT CHIP STARTUP_FILES
-        # nRF specific options
-        SDK_CONFIG SOFTDEVICE)
-    set(multiValueArgs)
-    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-    if (NOT ARGS_TARGET)
-        message(FATAL_ERROR "MCU: Missing required argument: TARGET")
-    endif ()
-
+macro(_nrf5_set_chip)
     if (ARGS_CHIP)
         set(chip ${ARGS_CHIP})
     else ()
         set(chip ${MCU_CHIP})
     endif ()
     set_target_properties(${ARGS_TARGET} PROPERTIES MCU_CHIP "${MCU_CHIP}")
-
-    if (ARGS_LINKER_SCRIPT)
-        if (NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
-            set(ARGS_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_LINKER_SCRIPT}")
-        endif ()
-        set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
-    endif ()
 
     if (${chip} MATCHES "nrf51.*")
         set(chip_series nrf51)
@@ -57,26 +35,10 @@ function(mcu_add_executable)
     if (chip_series)
         set_target_properties(${ARGS_TARGET} PROPERTIES MCU_NRF5X_CHIP_SERIES "${chip_series}")
     endif ()
+endmacro()
 
-    if (NOT DEFINED ARGS_STARTUP_FILES)
-        set(ARGS_STARTUP_FILES "auto")
-    endif ()
-
-    if (ARGS_STARTUP_FILES STREQUAL "auto")
-        _nrf5_startup_files(${ARGS_TARGET} STARTUP_FILES)
-        target_sources(${ARGS_TARGET} PUBLIC ${STARTUP_FILES})
-    endif ()
-
+macro(_nrf5_set_compiler_flags)
     target_compile_options(${ARGS_TARGET} PUBLIC -Wall -Werror -g3 -O3)
-
-    target_link_libraries(${ARGS_TARGET} PRIVATE -Wl,-Map=${ARGS_TARGET}.map)
-
-    # -Wall -Werror -O3 -g3
-    # "-ffunction-sections"
-    # "-fdata-sections"
-    # "-fno-strict-aliasing"
-    # "-fno-builtin"
-    # "--short-enums"
 
     if (${chip} MATCHES "nrf51.*")
         target_compile_options(${ARGS_TARGET} PUBLIC
@@ -115,6 +77,62 @@ function(mcu_add_executable)
             )
         # target_link_libraries(${ARGS_TARGET} PUBLIC c nosys)
     endif ()
+
+endmacro()
+
+function(mcu_add_library)
+    set(options)
+    set(oneValueArgs
+        # Common options
+        TARGET LINKER_SCRIPT CHIP)
+    set(multiValueArgs)
+    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if (NOT ARGS_TARGET)
+        message(FATAL_ERROR "MCU: Missing required argument: TARGET")
+    endif ()
+
+    _nrf5_set_chip()
+    _nrf5_set_compiler_flags()
+endfunction()
+
+function(mcu_add_executable)
+    # message("mcu_add_executable: ARGN=${ARGN}")
+
+    set(options)
+    set(oneValueArgs
+        # Common options
+        TARGET LINKER_SCRIPT CHIP STARTUP_FILES
+        # nRF specific options
+        SDK_CONFIG SOFTDEVICE)
+    set(multiValueArgs)
+    cmake_parse_arguments(ARGS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if (NOT ARGS_TARGET)
+        message(FATAL_ERROR "MCU: Missing required argument: TARGET")
+    endif ()
+
+    _nrf5_set_chip()
+
+    if (ARGS_LINKER_SCRIPT)
+        if (NOT IS_ABSOLUTE "${ARGS_LINKER_SCRIPT}")
+            set(ARGS_LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/${ARGS_LINKER_SCRIPT}")
+        endif ()
+        set_target_properties(${ARGS_TARGET} PROPERTIES MCU_LINKER_SCRIPT "${ARGS_LINKER_SCRIPT}")
+    endif ()
+
+    if (NOT DEFINED ARGS_STARTUP_FILES)
+        set(ARGS_STARTUP_FILES "auto")
+    endif ()
+
+    if (ARGS_STARTUP_FILES STREQUAL "auto")
+        _nrf5_startup_files(${ARGS_TARGET} STARTUP_FILES)
+        target_sources(${ARGS_TARGET} PUBLIC ${STARTUP_FILES})
+    endif ()
+
+    target_link_libraries(${ARGS_TARGET} PRIVATE -Wl,-Map=${ARGS_TARGET}.map)
+
+    _nrf5_set_compiler_flags()
 
     if (ARGS_SDK_CONFIG)
         get_filename_component(SDK_CONFIG ${ARGS_SDK_CONFIG} ABSOLUTE)
