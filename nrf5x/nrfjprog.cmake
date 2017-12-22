@@ -32,7 +32,6 @@ function(_nrf5_add_nrfjprog_targets T)
         add_custom_target(${T}-flash-softdevice
                 COMMAND ${MCU_NRFJPROG} -f ${MCU_NRF5X_CHIP_SERIES} --chiperase --program ${MCU_SOFTDEVICE_HEX}
                 COMMAND ${MCU_NRFJPROG} -f ${MCU_NRF5X_CHIP_SERIES} --reset
-                DEPENDS ${T} $<TARGET_FILE:${T}>.hex
                 COMMENT "Flashing soft device: ${MCU_SOFTDEVICE_HEX}")
     endif ()
 endfunction()
