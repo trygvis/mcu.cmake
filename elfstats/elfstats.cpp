@@ -234,7 +234,7 @@ int main(int argc, char **argv) {
         if (phdr.p_type == PT_LOAD) {
             SectionType expectedType;
 
-            if (phdr.p_flags == (PF_X | PF_R | PF_W)) {
+            if ((phdr.p_flags & ~PF_W) == (PF_X | PF_R)) {
                 if (debug) {
                     printf("Adding PH #%d as text\n", i);
                 }
