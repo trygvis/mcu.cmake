@@ -166,14 +166,14 @@ function(mcu_add_executable)
         endif ()
     endif ()
 
-    _nrf5_set_from_main_target(${ARGS_TARGET})
+    if(MCU_ELFSTATS_MODE STREQUAL AUTO)
+        mcu_elfstats_create_targets(${ARGS_TARGET})
+    endif()
+    if(MCU_BINUTILS_MODE STREQUAL AUTO)
+        mcu_binutils_create_dump_targets(${ARGS_TARGET})
+    endif()
 
-    add_custom_command(TARGET ${ARGS_TARGET} POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${ARGS_TARGET}> $<TARGET_FILE:${ARGS_TARGET}>.hex)
-    add_custom_command(TARGET ${ARGS_TARGET} POST_BUILD
-        COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${ARGS_TARGET}> $<TARGET_FILE:${ARGS_TARGET}>.bin)
-    add_custom_command(TARGET ${ARGS_TARGET} POST_BUILD
-        COMMAND ${CMAKE_NM} $<TARGET_FILE:${ARGS_TARGET}> > $<TARGET_FILE:${ARGS_TARGET}>.nm)
+    _nrf5_set_from_main_target(${ARGS_TARGET})
 
     _nrf5_try_add_nrfjprog_targets(${ARGS_TARGET})
     _nrf5_try_add_jlink_targets(${ARGS_TARGET})

@@ -28,13 +28,18 @@ function(mcu_binutils_create_dump_targets TARGET)
     endif ()
 
     if (MCU_ARM_OBJCOPY)
+        set(hex ${TARGET}-info/${TARGET}.hex)
         add_custom_command(TARGET ${TARGET} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${TARGET}-info
-                COMMAND ${MCU_ARM_OBJCOPY} -O ihex ${TARGET} ${TARGET}-info/${TARGET}.hex
-                BYPRODUCTS ${TARGET}-info/${TARGET}.hex)
+                COMMAND ${MCU_ARM_OBJCOPY} -O ihex ${TARGET} ${hex}
+                BYPRODUCTS ${hex})
+        set_target_properties(${TARGET} PROPERTIES MCU_OUTPUT_NAME_HEX ${hex})
+
+        set(bin ${TARGET}-info/${TARGET}.bin)
         add_custom_command(TARGET ${TARGET} POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${TARGET}-info
-                COMMAND ${MCU_ARM_OBJCOPY} -O binary ${TARGET} ${TARGET}-info/${TARGET}.bin
-                BYPRODUCTS ${TARGET}-info/${TARGET}.bin)
+                COMMAND ${MCU_ARM_OBJCOPY} -O binary ${TARGET} ${bin}
+                BYPRODUCTS ${bin})
+        set_target_properties(${TARGET} PROPERTIES MCU_OUTPUT_NAME_BIN ${bin})
     endif ()
 endfunction()

@@ -17,12 +17,13 @@ endfunction()
 function(_nrf5_add_nrfjprog_targets T)
     get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
     get_target_property(MCU_NRF5X_CHIP_SERIES ${T} MCU_NRF5X_CHIP_SERIES)
+    get_target_property(hex ${T} MCU_OUTPUT_NAME_HEX)
 
     message(STATUS "Creating target ${T}-flash")
     add_custom_target(${T}-flash
-            COMMAND ${MCU_NRFJPROG} -f ${MCU_NRF5X_CHIP_SERIES} --sectorerase --program $<TARGET_FILE:${T}>.hex
+            COMMAND ${MCU_NRFJPROG} -f ${MCU_NRF5X_CHIP_SERIES} --sectorerase --program ${hex}
             COMMAND ${MCU_NRFJPROG} -f ${MCU_NRF5X_CHIP_SERIES} --reset
-            DEPENDS ${T} $<TARGET_FILE:${T}>.hex
+            DEPENDS ${T} ${hex}
             COMMENT "Flashing: ${T}")
 
     get_target_property(MCU_SOFTDEVICE ${T} MCU_SOFTDEVICE)
