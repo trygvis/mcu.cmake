@@ -209,13 +209,13 @@ int main(int argc, char **argv) {
 
     int fd;
     if ((fd = open(filename, O_RDONLY, 0)) < 0)
-        err(EX_NOINPUT, "open \"%s\" failed", argv[1]);
+        err(EX_NOINPUT, "open \"%s\" failed", filename);
 
     Elf *e;
     if ((e = elf_begin(fd, ELF_C_READ, NULL)) == NULL)
         errx(EX_SOFTWARE, "elf_begin() failed: %s.", elf_errmsg(-1));
     if (elf_kind(e) != ELF_K_ELF)
-        errx(EX_DATAERR, "%s is not an ELF object.", argv[1]);
+        errx(EX_DATAERR, "%s is not an ELF object.", filename);
 
     size_t shstrndx;
     if (elf_getshdrstrndx(e, &shstrndx) != 0)
@@ -234,13 +234,17 @@ int main(int argc, char **argv) {
         if (phdr.p_type == PT_LOAD) {
             SectionType expectedType;
 
-            if ((phdr.p_flags & ~PF_W) == (PF_X | PF_R)) {
+            bool r = phdr.p_flags & PF_R;
+            bool w = phdr.p_flags & PF_W;
+            bool x = phdr.p_flags & PF_X;
+
+            if (x) {
                 if (debug) {
                     printf("Adding PH #%d as text\n", i);
                 }
 
                 expectedType = SectionType::TEXT;
-            } else if (phdr.p_flags == (PF_R | PF_W)) {
+            } else if (r) {
                 if (phdr.p_filesz > 0) {
                     expectedType = SectionType::DATA;
                     if (debug) {
