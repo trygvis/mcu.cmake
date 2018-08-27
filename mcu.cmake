@@ -27,6 +27,7 @@ else ()
 endif ()
 
 include(${CMAKE_CURRENT_LIST_DIR}/mcu_include_directories_from_sources.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/mcu_filter_is_directory.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/binutils.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/elfstats.cmake)
 

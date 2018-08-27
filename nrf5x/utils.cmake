@@ -4,15 +4,19 @@ include(${CMAKE_CURRENT_LIST_DIR}/jlink.cmake)
 function(_nrf5_startup_files T VAR)
     get_target_property(MCU_NRF5X_CHIP_SERIES ${T} MCU_NRF5X_CHIP_SERIES)
 
-    target_sources(${ARGS_TARGET} PUBLIC "${MCU_NRF5X_SDK_PATH}/components/toolchain/system_${MCU_NRF5X_CHIP_SERIES}.c")
-
     if ("${MCU_NRF5X_SDK_VERSION}" VERSION_LESS 12)
-        set(startup "${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/gcc_startup_${MCU_NRF5X_CHIP_SERIES}.s")
+        set(startup_s "${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/gcc_startup_${MCU_NRF5X_CHIP_SERIES}.s")
+        set(startup_c "${MCU_NRF5X_SDK_PATH}/components/toolchain/system_${MCU_NRF5X_CHIP_SERIES}.c")
+    elseif ("${MCU_NRF5X_SDK_VERSION_MAJOR}" VERSION_EQUAL 15)
+        set(startup_s "${MCU_NRF5X_SDK_PATH}/modules/nrfx/mdk/gcc_startup_${MCU_NRF5X_CHIP_SERIES}.S")
+        set(startup_c "${MCU_NRF5X_SDK_PATH}/modules/nrfx/mdk/system_${MCU_NRF5X_CHIP_SERIES}.c")
     else ()
-        set(startup "${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/gcc_startup_${MCU_NRF5X_CHIP_SERIES}.S")
+        set(startup_s "${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc/gcc_startup_${MCU_NRF5X_CHIP_SERIES}.S")
+        set(startup_c "${MCU_NRF5X_SDK_PATH}/components/toolchain/system_${MCU_NRF5X_CHIP_SERIES}.c")
     endif ()
 
-    set(${VAR} ${startup} PARENT_SCOPE)
+    set(${VAR} ${startup_s} PARENT_SCOPE)
+    target_sources(${ARGS_TARGET} PUBLIC "${startup_c}")
 endfunction()
 
 macro(_nrf5_set_chip)
@@ -151,6 +155,9 @@ function(mcu_add_executable)
         elseif ("${MCU_NRF5X_SDK_VERSION_MAJOR}" STREQUAL 14 AND ARGS_SOFTDEVICE STREQUAL 132)
             set(hex "${MCU_NRF5X_SDK_PATH}/components/softdevice/s132/hex/s132_nrf52_5.0.0_softdevice.hex")
             set_target_properties(${ARGS_TARGET} PROPERTIES MCU_NRF_SD_BLE_API_VERSION "5")
+        elseif ("${MCU_NRF5X_SDK_VERSION_MAJOR}" STREQUAL 15 AND ARGS_SOFTDEVICE STREQUAL 132)
+            set(hex "${MCU_NRF5X_SDK_PATH}/components/softdevice/s132/hex/s132_nrf52_6.0.0_softdevice.hex")
+            set_target_properties(${ARGS_TARGET} PROPERTIES MCU_NRF_SD_BLE_API_VERSION "6")
         else ()
             message(WARNING "Unknown combination of SDK version (${MCU_NRF5X_SDK_VERSION}) and softdevice (${ARGS_SOFTDEVICE}). Some features might be unavailable.")
         endif ()
@@ -191,12 +198,14 @@ function(_nrf5_set_from_main_target T)
     target_include_directories(${T} PUBLIC ${CHIP_INCLUDES})
     target_compile_definitions(${T} PUBLIC ${CHIP_DEFINES})
 
-    target_include_directories(${T} PUBLIC
-        ${MCU_NRF5X_SDK_PATH}/components/device
-        ${MCU_NRF5X_SDK_PATH}/components/toolchain
-        ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc
-        ${MCU_NRF5X_SDK_PATH}/components/toolchain/cmsis/include
-        )
+    set(tmp "")
+    list(APPEND tmp ${MCU_NRF5X_SDK_PATH}/components/device)
+    list(APPEND tmp ${MCU_NRF5X_SDK_PATH}/components/toolchain)
+    list(APPEND tmp ${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc)
+    list(APPEND tmp ${MCU_NRF5X_SDK_PATH}/components/toolchain/cmsis/include)
+    list(APPEND tmp ${MCU_NRF5X_SDK_PATH}/modules/nrfx/mdk) # >= 15
+    mcu_filter_is_directory(tmp "${tmp}")
+    target_include_directories(${T} PUBLIC "${tmp}")
 
     if (sdk_config)
         # message("_nrf5_set_from_main_target: sdk_config=${sdk_config}")
@@ -242,6 +251,7 @@ function(_nrf5_set_from_main_target T)
 
     target_link_libraries(${T} PUBLIC
         "-L\"${MCU_NRF5X_SDK_PATH}/components/toolchain/gcc\""
+        "-L\"${MCU_NRF5X_SDK_PATH}/modules/nrfx/mdk\""
         "-T\"$<TARGET_PROPERTY:MCU_LINKER_SCRIPT>\"")
     # TODO: here it would be useful to have a dependency on the LD script so the target is relinked when it changes.
 endfunction()
@@ -275,15 +285,11 @@ endfunction()
 function(_nrf_softdevice_includes SOFTDEVICE T INCLUDES_VAR DEFINES_VAR)
     # message("_nrf_softdevice_includes: SOFTDEVICE=${SOFTDEVICE}")
     if (SOFTDEVICE)
+        list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/common) # >= 15
         list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers)
-
-        if (EXISTS ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf51)
-            list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf51)
-        endif ()
-
-        if (EXISTS ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
-            list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
-        endif ()
+        list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf51)
+        list(APPEND includes ${MCU_NRF5X_SDK_PATH}/components/softdevice/s${SOFTDEVICE}/headers/nrf52)
+        mcu_filter_is_directory(includes "${includes}")
 
         list(APPEND defines
             S${SOFTDEVICE}
